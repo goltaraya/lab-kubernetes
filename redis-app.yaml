@@ -3,42 +3,62 @@ kind: Deployment
 metadata:
   name: redis-app
   labels:
-    app: redis
+    app: redis-app
 spec:
   selector:
     matchLabels:
-      app: redis
-  replicas: 1
+      app: redis-app
+  replicas: 2
   template:
     metadata:
       labels:
-        app: redis
+        app: redis-app
     spec:
       containers:
         - name: redis-app
           image: goltaraya/redis-app:v1
           resources:
             requests:
-              cpu: 100m
               memory: 64Mi
+              cpu: 100m
             limits:
               memory: 128Mi
               cpu: 500m
           ports:
-          - containerPort: 8080
+          - containerPort: 8081
             protocol: TCP
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: redis-app
+  # namespace: redis
   labels:
-    app: redis
+    app: redis-app
 spec:
   selector:
-    app: redis
+    app: redis-app
   ports:
   - port: 8081
-    targetPort: 8080
-    
-  
+    targetPort: 8081
+    name: tcp
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redis-app
+  # namespace: redis
+  annotations:
+    spec.ingressClassName: "traefik"
+spec:
+  rules:
+  - host: "www.192.168.56.10.sslip.io"
+    http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: redis-app
+              port:
+                number: 8081
